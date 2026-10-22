@@ -1,4 +1,7 @@
 /build/
+/cmake_build/
+/configure/
+/duckdb_unittest_tempdir/
 /.deps/
 /.venv/
 __pycache__/

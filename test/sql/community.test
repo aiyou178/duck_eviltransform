@@ -1,0 +1,24 @@
+# Validate the extension's public entry points through the community SQLLogicTest loader.
+statement ok
+INSTALL spatial;
+
+statement ok
+LOAD spatial;
+
+require eviltransform
+
+query RR
+SELECT round(ST_X(g), 6), round(ST_Y(g), 6)
+FROM (SELECT ST_EvilTransform(ST_Point(120, 30), 'WGS84', 'GCJ02') AS g);
+----
+120.004661	29.997534
+
+query T
+SELECT ST_JenksBins([1, 2, 3, 10, 11, 12], 2);
+----
+[3.0, 12.0]
+
+query T
+SELECT ST_JenksBinsAgg(x, 2) FROM (VALUES (1), (2), (3), (10), (11), (12)) t(x);
+----
+[3.0, 12.0]

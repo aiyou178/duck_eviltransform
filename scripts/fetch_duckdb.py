@@ -6,14 +6,30 @@ import os
 import pathlib
 import platform
 import tarfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 
 
 def fetch(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "duck-eviltransform-build"})
-    with urllib.request.urlopen(request, timeout=120) as response:
-        return response.read()
+    headers = {"User-Agent": "duck-eviltransform-build"}
+    # Hosted runners share anonymous API limits. Never send the token to asset CDNs.
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if token and url.startswith("https://api.github.com/"):
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request(url, headers=headers)
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                return response.read()
+        except urllib.error.HTTPError as error:
+            if error.code not in (429, 500, 502, 503, 504) or attempt == 3:
+                raise
+        except (urllib.error.URLError, TimeoutError):
+            if attempt == 3:
+                raise
+        time.sleep(2 ** attempt)
 
 
 def main():

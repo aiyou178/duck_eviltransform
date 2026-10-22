@@ -21,13 +21,20 @@ DuckDB 的 `spatial` 扩展及其内置 PROJ 数据库。
 
 ## 构建、加载
 
-依赖 C++17 编译器、CMake 3.16+、Python 3。不需要 Rust、PostgreSQL、PostGIS，
+依赖 C++17 编译器、CMake 3.16+、Python 3 和 Make。不需要 Rust、PostgreSQL、PostGIS，
 也不需要编译 DuckDB 源码；C API 头文件已经保存在仓库中。
 
 ```bash
+git clone --recurse-submodules https://github.com/aiyou178/duck_eviltransform.git
+cd duck_eviltransform
+make configure
 make release
 duckdb -unsigned
 ```
+
+`make configure` 在项目内虚拟环境安装 DuckDB Python 客户端和官方 SQLLogicTest
+测试工具。只编译、不安装这些测试依赖时可使用
+`cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release && cmake --build build/release`。
 
 ```sql
 INSTALL spatial;
@@ -44,7 +51,7 @@ SELECT ST_AsText(ST_EvilTransform(ST_Point(120,30), 'WGS84', 'GCJ02'));
 
 使用稳定 C 扩展 ABI `v1.2.0`，CI 配置检查 DuckDB `v1.4.0` 和 `v2.0.0`。
 不同平台仍需分别编译；必要时将 `PRAGMA platform` 的结果传入
-`make release CMAKE_ARGS='-DDUCKDB_PLATFORM=linux_amd64'`。
+`DUCKDB_PLATFORM=linux_amd64 make configure release`。
 
 先加载 `spatial`，再加载 `eviltransform`。加载过程注册原生函数，并在数据库
 `main` schema 中创建／替换 `ST_EvilTransform` 宏，因此初始化需要数据库可写。
@@ -120,9 +127,10 @@ FROM (VALUES (1),(2),(3),(10),(11),(12)) AS t(value);
 ## 验证
 
 ```bash
-make test
+make test_release
+make test_integration
 python3 scripts/fetch_duckdb.py v2.0.0 .deps/duckdb-v2
-make test DUCKDB=.deps/duckdb-v2/duckdb
+make test_integration DUCKDB=.deps/duckdb-v2/duckdb
 ```
 
 测试使用真实 CLI，先安装 `spatial`，检查参考点、几何／WKB 结构、投影委托、
@@ -131,7 +139,8 @@ CI 配置覆盖 Linux、macOS、Windows；配置文件本身不代表远程 CI �
 
 2026-10-22 本地实测：同一份 macOS ARM64 release 二进制分别在 DuckDB 1.4.0
 （`b8a06e4a22`）和 2.0.0（`d54cbbe3df`）通过全部 9 组集成测试，包含
-1,048,576 行并行 Jenks 聚合。本次尚未执行 Linux／Windows 构建或远程 CI。
+1,048,576 行并行 Jenks 聚合。Linux／macOS／Windows 的当前 CI 状态及额外的
+community 构建协议检查见上方工作流链接。
 
 ## 许可
 

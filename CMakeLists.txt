@@ -23,7 +23,18 @@ add_library(eviltransform SHARED src/extension.cpp src/jenks.cpp)
 target_compile_features(eviltransform PRIVATE cxx_std_17)
 target_compile_definitions(eviltransform PRIVATE DUCKDB_EXTENSION_NAME=eviltransform)
 target_include_directories(eviltransform PRIVATE third_party/duckdb src "${CMAKE_CURRENT_BINARY_DIR}")
-set_target_properties(eviltransform PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
+set_target_properties(eviltransform PROPERTIES
+  CXX_VISIBILITY_PRESET hidden
+  VISIBILITY_INLINES_HIDDEN ON
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+# Community build scripts copy the shared library directly from cmake_build/<type>.
+# Visual Studio and other multi-configuration generators otherwise add Release/Debug.
+foreach(CONFIG IN ITEMS DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+  set_target_properties(eviltransform PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_CURRENT_BINARY_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_CURRENT_BINARY_DIR}")
+endforeach()
 if(MSVC)
   target_compile_options(eviltransform PRIVATE /W4)
 else()

@@ -22,10 +22,14 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Download official DuckDB CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python scripts/fetch_duckdb.py '${{ matrix.duckdb }}' .deps/duckdb
       - name: Build
         run: |
@@ -43,3 +47,24 @@ jobs:
         with:
           name: eviltransform-${{ matrix.os }}-${{ matrix.duckdb }}
           path: build/release/eviltransform.duckdb_extension
+
+  community-protocol:
+    name: Community build and SQLLogicTest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Configure community build
+        run: make configure_ci DUCKDB_TEST_VERSION=2.0.0
+      - name: Build community artifact
+        run: make release
+      - name: Test through community loader
+        run: make test_release SKIP_TESTS=0

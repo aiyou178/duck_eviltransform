@@ -22,13 +22,20 @@ This is a catalog/source search result, not a claim about every unpublished thir
 
 ## Build and load
 
-Requires a C++17 compiler, CMake 3.16+, and Python 3. No Rust, PostgreSQL, PostGIS,
+Requires a C++17 compiler, CMake 3.16+, Python 3 and Make. No Rust, PostgreSQL, PostGIS,
 or DuckDB source build is required. DuckDB C API headers are vendored under `third_party/duckdb`.
 
 ```bash
+git clone --recurse-submodules https://github.com/aiyou178/duck_eviltransform.git
+cd duck_eviltransform
+make configure
 make release
 duckdb -unsigned
 ```
+
+`make configure` installs the DuckDB Python client and the official SQLLogicTest runner
+in a project-local virtual environment. To build without those test dependencies, use
+`cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release && cmake --build build/release`.
 
 ```sql
 INSTALL spatial;
@@ -49,7 +56,7 @@ DuckDB `v1.4.0` and `v2.0.0` by CI. Platform binaries still need to match the ho
 For a non-default ABI/platform, pass the exact value of `PRAGMA platform`:
 
 ```bash
-make release CMAKE_ARGS='-DDUCKDB_PLATFORM=linux_amd64'
+DUCKDB_PLATFORM=linux_amd64 make configure release
 ```
 
 Loading registers the native functions and creates/replaces the `ST_EvilTransform`
@@ -152,9 +159,10 @@ arithmetic for large finite inputs.
 After implementation/build, run:
 
 ```bash
-make test
+make test_release
+make test_integration
 python3 scripts/fetch_duckdb.py v2.0.0 .deps/duckdb-v2
-make test DUCKDB=.deps/duckdb-v2/duckdb
+make test_integration DUCKDB=.deps/duckdb-v2/duckdb
 ```
 
 `test/integration.py` uses the real CLI and installs `spatial` before testing. It covers
@@ -164,8 +172,8 @@ and Windows; a workflow configuration is not evidence of a completed CI run.
 
 Local validation on 2026-10-22: the same macOS ARM64 release binary passed all 9
 integration groups on DuckDB 1.4.0 (`b8a06e4a22`) and 2.0.0 (`d54cbbe3df`), including
-the 1,048,576-row parallel Jenks case. Linux/Windows builds and remote CI have not
-been run in this checkout.
+the 1,048,576-row parallel Jenks case. Current Linux/macOS/Windows CI results and
+the additional community build-protocol check are available in the linked workflow.
 
 ## License and attribution
 
