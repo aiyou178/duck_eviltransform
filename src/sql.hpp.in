@@ -1,0 +1,2 @@
+#pragma once
+static constexpr const char *EVILTRANSFORM_SQL = R"EVILSQL(@EVILTRANSFORM_SQL@)EVILSQL";

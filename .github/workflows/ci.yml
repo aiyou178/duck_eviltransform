@@ -1,0 +1,45 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: DuckDB ${{ matrix.duckdb }} / ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
+        duckdb: [v1.4.0, v2.0.0]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download official DuckDB CLI
+        run: python scripts/fetch_duckdb.py '${{ matrix.duckdb }}' .deps/duckdb
+      - name: Build
+        run: |
+          cli=.deps/duckdb/duckdb
+          if [[ "$RUNNER_OS" == Windows ]]; then cli="$cli.exe"; fi
+          platform=$("$cli" -csv -noheader :memory: 'PRAGMA platform;' | tr -d '\r')
+          cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release -DDUCKDB_PLATFORM="$platform"
+          cmake --build build/release --config Release --parallel
+      - name: Integration tests
+        run: |
+          cli=.deps/duckdb/duckdb
+          if [[ "$RUNNER_OS" == Windows ]]; then cli="$cli.exe"; fi
+          python test/integration.py --duckdb "$cli" --extension build/release/eviltransform.duckdb_extension
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eviltransform-${{ matrix.os }}-${{ matrix.duckdb }}
+          path: build/release/eviltransform.duckdb_extension

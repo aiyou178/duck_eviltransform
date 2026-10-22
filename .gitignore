@@ -1,0 +1,7 @@
+/build/
+/.deps/
+/.venv/
+__pycache__/
+*.duckdb
+*.duckdb.wal
+.DS_Store
